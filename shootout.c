@@ -110,6 +110,10 @@ pcg64(uint64_t state[2])
     return (high << 32) | low;
 }
 
+#define BASELINE_SETUP()
+#define BASELINE_RAND(dst) \
+    dst = 0;
+
 #define XORSHIFT64STAR_SETUP() \
     uint64_t state = 0xdeadbeefcafebabe
 #define XORSHIFT64STAR_RAND(dst) \
@@ -158,11 +162,12 @@ pcg64(uint64_t state[2])
 #define MT64_RAND(dst) \
     dst = mt_rand(mt64)
 
-#define PCG128_SETUP() \
+#define PCG64_SETUP() \
     uint64_t state[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}
-#define PCG128_RAND(dst) \
-    dst = pcg128(state)
+#define PCG64_RAND(dst) \
+    dst = pcg64(state)
 
+DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
 DEFINE_BENCH(xoroshiro128plus, XOROSHIRO128PLUS_SETUP, XOROSHIRO128PLUS_RAND);
@@ -181,6 +186,7 @@ main(int argc, char **argv)
         void (*pump)(void);
         const char name[24];
     } prngs[] = {
+        {baseline_bench,         baseline_pump,         "baseline"},
         {xorshift64star_bench,   xorshift64star_pump,   "xorshift64star"},
         {xorshift128plus_bench,  xorshift128plus_pump,  "xorshift128plus"},
         {xoroshiro128plus_bench, xoroshiro128plus_pump, "xoroshiro128plus"},
