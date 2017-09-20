@@ -97,7 +97,7 @@ xoroshiro128plus(uint64_t s[2])
 }
 
 static uint64_t
-pcg128(uint64_t state[2])
+pcg64(uint64_t state[2])
 {
     uint64_t m = 0x9b60933458e17d7d;
     uint64_t a = 0xd737232eeccdf7ed;
@@ -171,7 +171,7 @@ DEFINE_BENCH(blowfishcbc4, BLOWFISHCBC_SETUP, BLOWFISHCBC4_RAND);
 DEFINE_BENCH(blowfishctr16, BLOWFISHCTR_SETUP, BLOWFISHCTR16_RAND);
 DEFINE_BENCH(blowfishctr4, BLOWFISHCTR_SETUP, BLOWFISHCTR4_RAND);
 DEFINE_BENCH(mt64, MT64_SETUP, MT64_RAND);
-DEFINE_BENCH(pcg128, PCG128_SETUP, PCG128_RAND);
+DEFINE_BENCH(pcg64, PCG64_SETUP, PCG64_RAND);
 
 int
 main(int argc, char **argv)
@@ -189,7 +189,7 @@ main(int argc, char **argv)
         {blowfishctr16_bench,    blowfishctr16_pump,    "blowfishctr16"},
         {blowfishctr4_bench,     blowfishctr4_pump,     "blowfishctr4"},
         {mt64_bench,             mt64_pump,             "mt64"},
-        {pcg128_bench,           pcg128_pump,           "pcg128"},
+        {pcg64_bench,            pcg64_pump,            "pcg64"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
