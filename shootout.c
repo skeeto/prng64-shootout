@@ -84,12 +84,6 @@ xorshift128plus(uint64_t s[2])
     return s[1] + y;
 }
 
-static inline uint64_t
-rotl(const uint64_t x, int k)
-{
-    return (x << k) | (x >> (64 - k));
-}
-
 static uint64_t
 xoroshiro128plus(uint64_t s[2])
 {
@@ -97,8 +91,8 @@ xoroshiro128plus(uint64_t s[2])
     uint64_t s1 = s[1];
     uint64_t result = s0 + s1;
     s1 ^= s0;
-    s[0] = rotl(s0, 55) ^ s1 ^ (s1 << 14);
-    s[1] = rotl(s1, 36);
+    s[0] = ((s0 << 55) | (s0 >> 9)) ^ s1 ^ (s1 << 14);
+    s[1] = (s1 << 36) | (s1 >> 28);
     return result;
 }
 
