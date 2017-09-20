@@ -112,7 +112,7 @@ pcg64(uint64_t state[2])
 
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
-    dst = 0;
+    dst = 0
 
 #define XORSHIFT64STAR_SETUP() \
     uint64_t state = 0xdeadbeefcafebabe

@@ -21,23 +21,23 @@ test: check
 check: shootout $(results)
 
 xorshift64star.txt: shootout
-	./shootout -g0 | dieharder -g200 -a -m4 | tee $@
-xorshift128plus.txt: shootout
 	./shootout -g1 | dieharder -g200 -a -m4 | tee $@
-xoroshiro128plus.txt: shootout
+xorshift128plus.txt: shootout
 	./shootout -g2 | dieharder -g200 -a -m4 | tee $@
-blowfishcbc16.txt: shootout
+xoroshiro128plus.txt: shootout
 	./shootout -g3 | dieharder -g200 -a -m4 | tee $@
-blowfishcbc4.txt: shootout
+blowfishcbc16.txt: shootout
 	./shootout -g4 | dieharder -g200 -a -m4 | tee $@
-blowfishctr16.txt: shootout
+blowfishcbc4.txt: shootout
 	./shootout -g5 | dieharder -g200 -a -m4 | tee $@
-blowfishctr4.txt: shootout
+blowfishctr16.txt: shootout
 	./shootout -g6 | dieharder -g200 -a -m4 | tee $@
-mt64.txt: shootout
+blowfishctr4.txt: shootout
 	./shootout -g7 | dieharder -g200 -a -m4 | tee $@
-pcg128.txt: shootout
+mt64.txt: shootout
 	./shootout -g8 | dieharder -g200 -a -m4 | tee $@
+pcg128.txt: shootout
+	./shootout -g9 | dieharder -g200 -a -m4 | tee $@
 
 clean:
 	rm -f shootout $(results)
