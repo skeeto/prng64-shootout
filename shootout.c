@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <unistd.h> // alarm()
 
+#include "rc4.h"
 #include "mt64.h"
 #include "blowfish.h"
 
@@ -97,16 +98,38 @@ xoroshiro128plus(uint64_t s[2])
 }
 
 static uint64_t
-pcg64(uint64_t state[2])
+spcg64(uint64_t s[2])
 {
-    uint64_t m = 0x9b60933458e17d7d;
-    uint64_t a = 0xd737232eeccdf7ed;
-    state[0] = (state[0] * m) + a;
-    state[1] = (state[1] * m) + a;
-    int s0 = 29 - (state[0] >> 61);
-    int s1 = 29 - (state[1] >> 61);
-    uint64_t high = state[0] >> s0;
-    uint32_t low  = state[1] >> s1;
+    uint64_t m  = 0x9b60933458e17d7d;
+    uint64_t a0 = 0xd737232eeccdf7ed;
+    uint64_t a1 = 0x8b260b70b8e98891;
+    uint64_t p0 = s[0];
+    uint64_t p1 = s[0];
+    s[0] = p0 * m + a0;
+    s[1] = p1 * m + a1;
+    int r0 = 29 - (p0 >> 61);
+    int r1 = 29 - (p1 >> 61);
+    uint64_t high = p0 >> r0;
+    uint64_t low  = p1 >> r1;
+    return (high << 32) | low;
+}
+
+static uint64_t
+pcg64(uint64_t s[2])
+{
+    uint64_t m  = 0x5851f42d4c957f2d;
+    uint64_t a0 = 0xd737232eeccdf7ed;
+    uint64_t a1 = 0x8b260b70b8e98891;
+    uint64_t p0 = s[0];
+    uint64_t p1 = s[1];
+    s[0] = p0 * m + a0;
+    s[1] = p1 * m + a1;
+    uint32_t x0 = ((p0 >> 18) ^ p0) >> 27;
+    uint32_t x1 = ((p1 >> 18) ^ p1) >> 27;
+    uint32_t r0 = p0 >> 59;
+    uint32_t r1 = p1 >> 59;
+    uint64_t high = (x0 >> r0) | (x0 << ((-r0) & 31u));
+    uint64_t low  = (x1 >> r1) | (x1 << ((-r1) & 31u));
     return (high << 32) | low;
 }
 
@@ -162,10 +185,23 @@ pcg64(uint64_t state[2])
 #define MT64_RAND(dst) \
     dst = mt_rand(mt64)
 
+#define SPCG64_SETUP() \
+    uint64_t state[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}
+#define SPCG64_RAND(dst) \
+    dst = spcg64(state)
+
 #define PCG64_SETUP() \
     uint64_t state[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}
 #define PCG64_RAND(dst) \
     dst = pcg64(state)
+
+#define RC4_SETUP() \
+    struct rc4 rc4[1]; \
+    rc4_init(rc4, "seed", 5); \
+    uint64_t v
+#define RC4_RAND(dst) \
+    rc4_rand(rc4, &v, sizeof(v)); \
+    dst = v
 
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
@@ -176,7 +212,9 @@ DEFINE_BENCH(blowfishcbc4, BLOWFISHCBC_SETUP, BLOWFISHCBC4_RAND);
 DEFINE_BENCH(blowfishctr16, BLOWFISHCTR_SETUP, BLOWFISHCTR16_RAND);
 DEFINE_BENCH(blowfishctr4, BLOWFISHCTR_SETUP, BLOWFISHCTR4_RAND);
 DEFINE_BENCH(mt64, MT64_SETUP, MT64_RAND);
+DEFINE_BENCH(spcg64, SPCG64_SETUP, SPCG64_RAND);
 DEFINE_BENCH(pcg64, PCG64_SETUP, PCG64_RAND);
+DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
 
 int
 main(int argc, char **argv)
@@ -195,7 +233,9 @@ main(int argc, char **argv)
         {blowfishctr16_bench,    blowfishctr16_pump,    "blowfishctr16"},
         {blowfishctr4_bench,     blowfishctr4_pump,     "blowfishctr4"},
         {mt64_bench,             mt64_pump,             "mt64"},
+        {spcg64_bench,           spcg64_pump,           "spcg64"},
         {pcg64_bench,            pcg64_pump,            "pcg64"},
+        {rc4_bench,              rc4_pump,              "rc4"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
@@ -215,7 +255,7 @@ main(int argc, char **argv)
             case 'h':
                 puts("speedtest [-g n] [-h]");
                 for (int i = 0; i < nprngs; i++)
-                    printf("%d %s\n", i, prngs[i].name);
+                    printf("%-2d %s\n", i, prngs[i].name);
                 exit(EXIT_SUCCESS);
             default:
                 exit(EXIT_FAILURE);
