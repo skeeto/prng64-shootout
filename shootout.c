@@ -129,7 +129,7 @@ pcg64(uint64_t s[2])
     uint32_t r0 = p0 >> 59;
     uint32_t r1 = p1 >> 59;
     uint64_t high = (x0 >> r0) | (x0 << ((-r0) & 31u));
-    uint64_t low  = (x1 >> r1) | (x1 << ((-r1) & 31u));
+    uint32_t low  = (x1 >> r1) | (x1 << ((-r1) & 31u));
     return (high << 32) | low;
 }
 
