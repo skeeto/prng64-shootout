@@ -110,7 +110,7 @@ spcg64(uint64_t s[2])
     int r0 = 29 - (p0 >> 61);
     int r1 = 29 - (p1 >> 61);
     uint64_t high = p0 >> r0;
-    uint64_t low  = p1 >> r1;
+    uint32_t low  = p1 >> r1;
     return (high << 32) | low;
 }
 
