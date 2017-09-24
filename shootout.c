@@ -86,6 +86,15 @@ xorshift128plus(uint64_t s[2])
 }
 
 static uint64_t
+xorshift1024star(uint64_t s[16], int *p) {
+    uint64_t s0 = s[*p];
+    uint64_t s1 = s[*p = (*p + 1) & 15];
+    s1 ^= s1 << 31;
+    s[*p] = s1 ^ s0 ^ (s1 >> 11) ^ (s0 >> 30);
+    return s[*p] * UINT64_C(0x106689D45497FDB5);
+}
+
+static uint64_t
 xoroshiro128plus(uint64_t s[2])
 {
     uint64_t s0 = s[0];
@@ -147,6 +156,14 @@ pcg64(uint64_t s[2])
 #define XORSHIFT128PLUS_RAND(dst) \
     dst = xorshift128plus(state)
 
+#define XORSHIFT1024STAR_SETUP() \
+    int p = 0; \
+    uint64_t state[16] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}; \
+    uint64_t pre[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}; \
+    for (int i = 0; i < 16; i++) state[i] = xorshift64star(pre)
+#define XORSHIFT1024STAR_RAND(dst) \
+    dst = xorshift1024star(state, &p)
+
 #define XOROSHIRO128PLUS_SETUP() \
     uint64_t state[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}
 #define XOROSHIRO128PLUS_RAND(dst) \
@@ -207,6 +224,7 @@ DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
 DEFINE_BENCH(xoroshiro128plus, XOROSHIRO128PLUS_SETUP, XOROSHIRO128PLUS_RAND);
+DEFINE_BENCH(xorshift1024star, XORSHIFT1024STAR_SETUP, XORSHIFT1024STAR_RAND);
 DEFINE_BENCH(blowfishcbc16, BLOWFISHCBC_SETUP, BLOWFISHCBC16_RAND);
 DEFINE_BENCH(blowfishcbc4, BLOWFISHCBC_SETUP, BLOWFISHCBC4_RAND);
 DEFINE_BENCH(blowfishctr16, BLOWFISHCTR_SETUP, BLOWFISHCTR16_RAND);
@@ -227,6 +245,7 @@ main(int argc, char **argv)
         {baseline_bench,         baseline_pump,         "baseline"},
         {xorshift64star_bench,   xorshift64star_pump,   "xorshift64star"},
         {xorshift128plus_bench,  xorshift128plus_pump,  "xorshift128plus"},
+        {xorshift1024star_bench, xorshift1024star_pump, "xorshift1024star"},
         {xoroshiro128plus_bench, xoroshiro128plus_pump, "xoroshiro128plus"},
         {blowfishcbc16_bench,    blowfishcbc16_pump,    "blowfishcbc16"},
         {blowfishcbc4_bench,     blowfishcbc4_pump,     "blowfishcbc4"},
