@@ -1,6 +1,6 @@
 .POSIX:
 .SUFFIXES:
-CC     = c99
+CC     = cc -std=c99
 CFLAGS = -Wall -Wextra -O3 -g3 -march=native
 
 results = \
