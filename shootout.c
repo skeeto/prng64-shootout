@@ -142,6 +142,24 @@ pcg64(uint64_t s[2])
     return (high << 32) | low;
 }
 
+static uint32_t
+msws32(uint64_t s[2])
+{
+    s[0] *= s[0];
+    s[1] += UINT64_C(0xb5ad4eceda1ce2a9);
+    s[0] += s[1];
+    s[0] = (s[0] << 32) | (s[0] >> 32);
+    return s[0];
+}
+
+static uint64_t
+msws64(uint64_t s[2])
+{
+    uint64_t hi = msws32(s);
+    uint64_t lo = msws32(s);
+    return hi << 32 | lo;
+}
+
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
     dst = 0
@@ -220,6 +238,11 @@ pcg64(uint64_t s[2])
     rc4_rand(rc4, &v, sizeof(v)); \
     dst = v
 
+#define MSWS64_SETUP() \
+    uint64_t state[] = {0xdeadbeefcafebabe, 0x8badf00dbaada555}
+#define MSWS64_RAND(dst) \
+    dst = msws64(state)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -233,6 +256,7 @@ DEFINE_BENCH(mt64, MT64_SETUP, MT64_RAND);
 DEFINE_BENCH(spcg64, SPCG64_SETUP, SPCG64_RAND);
 DEFINE_BENCH(pcg64, PCG64_SETUP, PCG64_RAND);
 DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
+DEFINE_BENCH(msws64, MSWS64_SETUP, MSWS64_RAND);
 
 int
 main(int argc, char **argv)
@@ -255,6 +279,7 @@ main(int argc, char **argv)
         {spcg64_bench,           spcg64_pump,           "spcg64"},
         {pcg64_bench,            pcg64_pump,            "pcg64"},
         {rc4_bench,              rc4_pump,              "rc4"},
+        {msws64_bench,           msws64_pump,           "mswc64"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
