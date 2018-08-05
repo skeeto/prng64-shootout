@@ -50,6 +50,8 @@ mswc64.txt: shootout
 	./shootout -g13 | dieharder -g200 -a -m4 | tee $@
 xoshiro256starstar.txt: shootout
 	./shootout -g14 | dieharder -g200 -a -m4 | tee $@
+splitmix64.txt: shootout
+	./shootout -g15 | dieharder -g200 -a -m4 | tee $@
 
 clean:
 	rm -f shootout $(results)
