@@ -94,6 +94,7 @@ xorshift1024star(uint64_t s[16], int *p) {
     return s[*p] * UINT64_C(0x106689D45497FDB5);
 }
 
+/* includes updated constants (a=24, b=16, b=37) */
 static uint64_t
 xoroshiro128plus(uint64_t s[2])
 {
@@ -101,8 +102,8 @@ xoroshiro128plus(uint64_t s[2])
     uint64_t s1 = s[1];
     uint64_t result = s0 + s1;
     s1 ^= s0;
-    s[0] = ((s0 << 55) | (s0 >> 9)) ^ s1 ^ (s1 << 14);
-    s[1] = (s1 << 36) | (s1 >> 28);
+    s[0] = ((s0 << 24) | (s0 >> 40)) ^ s1 ^ (s1 << 16);
+    s[1] = (s1 << 37) | (s1 >> 27);
     return result;
 }
 
