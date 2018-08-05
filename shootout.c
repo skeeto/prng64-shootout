@@ -322,7 +322,7 @@ main(int argc, char **argv)
         {spcg64_bench,           spcg64_pump,           "spcg64"},
         {pcg64_bench,            pcg64_pump,            "pcg64"},
         {rc4_bench,              rc4_pump,              "rc4"},
-        {msws64_bench,           msws64_pump,           "mswc64"},
+        {msws64_bench,           msws64_pump,           "msws64"},
         {xoshiro256ss_bench,     xoshiro256ss_pump,     "xoshiro256starstar"},
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
     };

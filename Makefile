@@ -46,7 +46,7 @@ pcg64.txt: shootout
 	./shootout -g11 | dieharder -g200 -a -m4 | tee $@
 rc4.txt: shootout
 	./shootout -g12 | dieharder -g200 -a -m4 | tee $@
-mswc64.txt: shootout
+msws64.txt: shootout
 	./shootout -g13 | dieharder -g200 -a -m4 | tee $@
 xoshiro256starstar.txt: shootout
 	./shootout -g14 | dieharder -g200 -a -m4 | tee $@
