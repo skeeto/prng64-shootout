@@ -188,6 +188,18 @@ splitmix64(uint64_t *s)
     return x;
 }
 
+static uint64_t
+rrmxmx(uint64_t *s)
+{
+    uint64_t v = (*s += UINT64_C(0x45b655ba41059491));
+    v ^= (v << 15 | v >> 49) ^ (v << 40 | v >> 24);
+    v *= UINT64_C(0x9fb21c651e98df25);
+    v ^= v >> 28;
+    v *= UINT64_C(0x9fb21c651e98df25);
+    v ^= v >> 28;
+    return v;
+}
+
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
     dst = 0
@@ -284,6 +296,11 @@ splitmix64(uint64_t *s)
 #define SPLITMIX64_RAND(dst) \
     dst = splitmix64(state)
 
+#define RRMXMX_SETUP() \
+    uint64_t state[] = {0xdeadbeefcafebabe}
+#define RRMXMX_RAND(dst) \
+    dst = rrmxmx(state)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -300,6 +317,7 @@ DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
 DEFINE_BENCH(msws64, MSWS64_SETUP, MSWS64_RAND);
 DEFINE_BENCH(xoshiro256ss, XOSHIRO256SS_SETUP, XOSHIRO256SS_RAND);
 DEFINE_BENCH(splitmix64, SPLITMIX64_SETUP, SPLITMIX64_RAND);
+DEFINE_BENCH(rrmxmx, RRMXMX_SETUP, RRMXMX_RAND);
 
 int
 main(int argc, char **argv)
@@ -325,6 +343,7 @@ main(int argc, char **argv)
         {msws64_bench,           msws64_pump,           "msws64"},
         {xoshiro256ss_bench,     xoshiro256ss_pump,     "xoshiro256starstar"},
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
+        {rrmxmx_bench,           rrmxmx_pump,           "rrmxmx"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
