@@ -187,6 +187,36 @@ splitmix64(uint64_t *s)
     x ^= x >> 31;
     return x;
 }
+struct mrx64 {
+    uint64_t s[607];
+    int a, b;
+};
+
+void
+mrx64_init(struct mrx64 *r, uint64_t seed)
+{
+    r->a = 0;
+    r->b = 334;
+    for (int i = 0; i < 607; i++) {
+        uint64_t x = seed + i;
+        x ^= x >> 30;
+        x *= UINT64_C(0xbf58476d1ce4e5b9);
+        x ^= x >> 27;
+        x *= UINT64_C(0x94d049bb133111eb);
+        x ^= x >> 31;
+        r->s[i] = x;
+    }
+}
+
+uint64_t
+mrx64_next(struct mrx64 *r)
+{
+    if (--r->a < 0)
+        r->a += 607;
+    if (--r->b < 0)
+        r->b += 607;
+    return (r->s[r->b] += r->s[r->a]);
+}
 
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
@@ -284,6 +314,12 @@ splitmix64(uint64_t *s)
 #define SPLITMIX64_RAND(dst) \
     dst = splitmix64(state)
 
+#define MRX64_SETUP() \
+    struct mrx64 state[1]; \
+    mrx64_init(state, 0xdeadbeefcafebabe)
+#define MRX64_RAND(dst) \
+    dst = mrx64_next(state)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -300,6 +336,7 @@ DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
 DEFINE_BENCH(msws64, MSWS64_SETUP, MSWS64_RAND);
 DEFINE_BENCH(xoshiro256ss, XOSHIRO256SS_SETUP, XOSHIRO256SS_RAND);
 DEFINE_BENCH(splitmix64, SPLITMIX64_SETUP, SPLITMIX64_RAND);
+DEFINE_BENCH(mrx64, MRX64_SETUP, MRX64_RAND);
 
 int
 main(int argc, char **argv)
@@ -325,6 +362,7 @@ main(int argc, char **argv)
         {msws64_bench,           msws64_pump,           "msws64"},
         {xoshiro256ss_bench,     xoshiro256ss_pump,     "xoshiro256starstar"},
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
+        {mrx64_bench,            mrx64_pump,            "mrx64"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
