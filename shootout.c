@@ -10,10 +10,13 @@
 #include "rc4.h"
 #include "mt64.h"
 #include "blowfish.h"
+#include "speck.h"
 
 #define UNROLL 8           /* Iterations between alarm checks */
 #define SECONDS 1          /* Seconds spent on each test */
 #define NSAMPLES 8         /* Number of samples per generator */
+
+#define countof(a) (sizeof(a) / sizeof(0[a]))
 
 #define N (64UL * 1024 * 1024)
 static volatile uint64_t buffer[N];
@@ -188,6 +191,29 @@ splitmix64(uint64_t *s)
     return x;
 }
 
+struct speckfke {
+    int count;
+    uint64_t buf[48 * 2];
+};
+
+static uint64_t
+speckfke_next(struct speckfke *s)
+{
+    if (!s->count) {
+        struct speck ctx[1];
+        speck_init(ctx, s->buf[0], s->buf[1]);
+        for (int i = 0; i < (int)countof(s->buf); i += 2) {
+            s->buf[i + 0] = i + 0;
+            s->buf[i + 1] = i + 1;
+            speck_encrypt(ctx, s->buf + i + 0, s->buf + i + 1);
+        }
+        s->count = countof(s->buf) - 2;
+        /* NOTE: For actual FKE, securely erase ctx here. */
+    }
+    /* NOTE: For actual FKE, erase output as it's consumed. */
+    return s->buf[countof(s->buf) - s->count--];
+}
+
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
     dst = 0
@@ -284,6 +310,12 @@ splitmix64(uint64_t *s)
 #define SPLITMIX64_RAND(dst) \
     dst = splitmix64(state)
 
+#define SPECKFKE_SETUP() \
+    (void)speck_decrypt; \
+    struct speckfke ctx[1] = {{0}}
+#define SPECKFKE_RAND(dst) \
+    dst = speckfke_next(ctx)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -300,6 +332,7 @@ DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
 DEFINE_BENCH(msws64, MSWS64_SETUP, MSWS64_RAND);
 DEFINE_BENCH(xoshiro256ss, XOSHIRO256SS_SETUP, XOSHIRO256SS_RAND);
 DEFINE_BENCH(splitmix64, SPLITMIX64_SETUP, SPLITMIX64_RAND);
+DEFINE_BENCH(speckfke, SPECKFKE_SETUP, SPECKFKE_RAND);
 
 int
 main(int argc, char **argv)
@@ -325,6 +358,7 @@ main(int argc, char **argv)
         {msws64_bench,           msws64_pump,           "msws64"},
         {xoshiro256ss_bench,     xoshiro256ss_pump,     "xoshiro256starstar"},
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
+        {speckfke_bench,         speckfke_pump,         "speckfke"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
