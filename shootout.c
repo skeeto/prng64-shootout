@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 
 #include <getopt.h>
@@ -188,6 +189,52 @@ splitmix64(uint64_t *s)
     return x;
 }
 
+struct chacha {
+    uint32_t s[16];
+    uint64_t buf[8];
+    int count;
+};
+
+#define CHACHA_ROTATE(v,n) (((v) << (n)) | ((v) >> (32 - (n))))
+#define CHACHA_QUARTERROUND(a,b,c,d) \
+    x[a] += x[b]; x[d] = CHACHA_ROTATE(x[d] ^ x[a],16); \
+    x[c] += x[d]; x[b] = CHACHA_ROTATE(x[b] ^ x[c],12); \
+    x[a] += x[b]; x[d] = CHACHA_ROTATE(x[d] ^ x[a], 8); \
+    x[c] += x[d]; x[b] = CHACHA_ROTATE(x[b] ^ x[c], 7)
+
+static uint64_t
+chacha_next(struct chacha *ctx)
+{
+    if (!ctx->count) {
+        uint32_t x[16];
+        memcpy(x, ctx->s, sizeof(x));
+
+        uint64_t counter = ctx->s[12] | (uint64_t)ctx->s[13] << 32;
+        ctx->s[12] = ++counter;
+        ctx->s[13] = counter >> 32;
+
+        /* Note: 8 rounds, so this is ChaCha8. */
+        for (int i = 8; i > 0; i -= 2) {
+            CHACHA_QUARTERROUND( 0, 4, 8,12);
+            CHACHA_QUARTERROUND( 1, 5, 9,13);
+            CHACHA_QUARTERROUND( 2, 6,10,14);
+            CHACHA_QUARTERROUND( 3, 7,11,15);
+            CHACHA_QUARTERROUND( 0, 5,10,15);
+            CHACHA_QUARTERROUND( 1, 6,11,12);
+            CHACHA_QUARTERROUND( 2, 7, 8,13);
+            CHACHA_QUARTERROUND( 3, 4, 9,14);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            uint64_t lo = x[i*2 + 0] + ctx->s[i*2 + 0];
+            uint64_t hi = x[i*2 + 1] + ctx->s[i*2 + 1];
+            ctx->buf[i] = hi << 32 | lo;
+        }
+        ctx->count = 8;
+    }
+    return ctx->buf[8 - ctx->count--];
+}
+
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
     dst = 0
@@ -284,6 +331,15 @@ splitmix64(uint64_t *s)
 #define SPLITMIX64_RAND(dst) \
     dst = splitmix64(state)
 
+#define CHACHA_SETUP() \
+    struct chacha ctx = { \
+        {0x61707865, 0x3320646e, 0x79622d32, 0x6b206574}, \
+        {0},\
+        0 \
+    }
+#define CHACHA_RAND(dst) \
+    dst = chacha_next(&ctx)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -300,6 +356,7 @@ DEFINE_BENCH(rc4, RC4_SETUP, RC4_RAND);
 DEFINE_BENCH(msws64, MSWS64_SETUP, MSWS64_RAND);
 DEFINE_BENCH(xoshiro256ss, XOSHIRO256SS_SETUP, XOSHIRO256SS_RAND);
 DEFINE_BENCH(splitmix64, SPLITMIX64_SETUP, SPLITMIX64_RAND);
+DEFINE_BENCH(chacha, CHACHA_SETUP, CHACHA_RAND);
 
 int
 main(int argc, char **argv)
@@ -325,6 +382,7 @@ main(int argc, char **argv)
         {msws64_bench,           msws64_pump,           "msws64"},
         {xoshiro256ss_bench,     xoshiro256ss_pump,     "xoshiro256starstar"},
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
+        {chacha_bench,           chacha_pump,           "chacha"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
