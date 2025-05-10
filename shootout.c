@@ -230,6 +230,20 @@ sfc64(uint64_t s[4])
     return r;
 }
 
+static uint64_t
+loopmix128(uint64_t s[3])
+{
+    uint64_t m = 0x9e3779b97f4a7c15;
+    uint64_t r = m * (s[2] + s[1]);
+    if (!s[1]) {
+        s[0] += m;
+        s[2] ^= s[0];
+    }
+    s[2] = (s[2]<<59 | s[2]>> 5) + s[1];
+    s[1] = (s[1]<<47 | s[1]>>17) + m;
+    return r;
+}
+
 #define BASELINE_SETUP()
 #define BASELINE_RAND(dst) \
     dst = 0
@@ -350,6 +364,13 @@ sfc64(uint64_t s[4])
 #define SFC64_RAND(dst) \
     dst = sfc64(state)
 
+#define LOOPMIX128_SETUP() \
+    uint64_t state[] = { \
+        0xdeadbeefcafebabe, 0x8badf00dbaada555, 0x4cf08ad601831eb6 \
+    }
+#define LOOPMIX128_RAND(dst) \
+    dst = loopmix128(state)
+
 DEFINE_BENCH(baseline, BASELINE_SETUP, BASELINE_RAND);
 DEFINE_BENCH(xorshift64star, XORSHIFT64STAR_SETUP, XORSHIFT64STAR_RAND);
 DEFINE_BENCH(xorshift128plus, XORSHIFT128PLUS_SETUP, XORSHIFT128PLUS_RAND);
@@ -369,6 +390,7 @@ DEFINE_BENCH(xoshiro256pp, XOSHIRO256PP_SETUP, XOSHIRO256PP_RAND);
 DEFINE_BENCH(splitmix64, SPLITMIX64_SETUP, SPLITMIX64_RAND);
 DEFINE_BENCH(mwc256xxa64, MWC256XXA64_SETUP, MWC256XXA64_RAND);
 DEFINE_BENCH(sfc64, SFC64_SETUP, SFC64_RAND);
+DEFINE_BENCH(loopmix128, LOOPMIX128_SETUP, LOOPMIX128_RAND);
 
 int
 main(int argc, char **argv)
@@ -397,6 +419,7 @@ main(int argc, char **argv)
         {splitmix64_bench,       splitmix64_pump,       "splitmix64"},
         {mwc256xxa64_bench,      mwc256xxa64_pump,      "mwc256xxa64"},
         {sfc64_bench,            sfc64_pump,            "sfc64"},
+        {loopmix128_bench,       loopmix128_pump,       "loopmix128"},
     };
     static const int nprngs = sizeof(prngs) / sizeof(*prngs);
 
