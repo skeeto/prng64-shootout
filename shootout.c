@@ -231,15 +231,14 @@ sfc64(uint64_t s[4])
 }
 
 static uint64_t
-biski64(uint64_t s[5])
+biski64(uint64_t s[3])
 {
-    uint64_t m = s[3] + s[4];
-    s[4] = 0x9e3779b97f4a7c15 * s[1];
-    s[3] = s[2]<<39 | s[2]>>25;
+    uint64_t r = s[1] + s[2];
+    uint64_t m = s[2];
     s[2] = s[0] ^ s[1];
-    s[1] = m;
-    s[0] += 0x9e3779b97f4a7c15;
-    return s[4];
+    s[1] = (s[1]<<16 | s[1]>>48) + (m<<40 | m>>24);
+    s[0] += 0x9999999999999999;
+    return r;
 }
 
 #define BASELINE_SETUP()
@@ -364,8 +363,7 @@ biski64(uint64_t s[5])
 
 #define BISKI64_SETUP() \
     uint64_t state[] = { \
-        0xdeadbeefcafebabe, 0x8badf00dbaada555, \
-        0x4cf08ad601831eb6, 0x9d6f4cccb35e7af9, 0x123456789abcdef1\
+        0xdeadbeefcafebabe, 0x8badf00dbaada555, 0x4cf08ad601831eb6, \
     }
 #define BISKI64_RAND(dst) \
     dst = biski64(state)
